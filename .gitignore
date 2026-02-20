@@ -1,0 +1,52 @@
+# Build Outputs
+build/
+out/
+bin/
+dist/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+*.cmake
+*.ninja
+.ninja_log
+.ninja_deps
+_deps/
+compile_commands.json
+
+# Compiled source files
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+
+# Debug / profiling
+*.dSYM/
+*.gcno
+*.gcda
+*.gcov
+gmon.out
+valgrind.log
+
+# IDE / Editor.vscode/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
