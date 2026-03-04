@@ -1,0 +1,132 @@
+#pragma once
+
+#include "core/Direction.hpp"
+#include "core/Direction.hpp"
+#include "core/Entity.hpp"
+#include <SFML/Graphics.hpp>
+#include <array>
+#include <string>
+#include <unordered_map>
+
+/**
+ * @brief Игрок, управляемый клавишами WASD, с поддержкой спрайтовой анимации.
+ *
+ * Может отрисовываться как прямоугольник (fallback) или как спрайт из атласа.
+ * Поддерживает 8 направлений, автоматический парсинг тайлсета с прозрачными
+ * линиями-«гаттерами», отдельные атласы для состояний (idle/run/attack/...)
+ * и ограничение движения в заданных границах.
+ */
+class Player final : public Entity {
+  public:
+    /**
+     * @brief Создаёт игрока.
+     *
+    * @param size Логический размер сущности в пикселях;
+    *             используется как габарит для коллизий и масштабирования
+    *             спрайта.
+     * @param startPosition Начальная позиция в мировых координатах.
+     * @param movementBounds Прямоугольник, внутри которого можно двигаться.
+    * @param moveTexturePath Путь к атласу движения ("run"). Если не задан
+    *        или не загрузился, используется fallback-прямоугольник.
+    * @param idleTexturePath Путь к атласу покоя ("idle"). Если пусто, в покое
+    *        используется тот же атлас, что и для движения.
+     */
+    Player(const sf::Vector2f &size, const sf::Vector2f &startPosition,
+           const sf::FloatRect &movementBounds,
+           const std::string &moveTexturePath = "",
+           const std::string &idleTexturePath = "");
+
+    /** @brief Обновляет ввод, анимацию и ограничение по границам. */
+    void update(float dt) override;
+
+    /** @brief Локальные границы (коллизия/отрисовка). */
+    sf::FloatRect getLocalBounds() const override;
+
+    /** @brief Установить скорость перемещения (пикселей в секунду). */
+    void setSpeed(float speed) noexcept { speed_ = speed; }
+    /** @brief Текущая скорость перемещения. */
+    float getSpeed() const noexcept { return speed_; }
+
+    /**
+     * @brief Загрузить или заменить атлас состояния (e.g. "attack").
+     * @return true если атлас успешно загружен и добавлен.
+     */
+    bool loadAnimation(const std::string &stateName, const std::string &path);
+
+    /**
+     * @brief Зафиксировать состояние анимации по имени ("attack", "hurt" и т.д.).
+     * Пока override активен, автоматический выбор run/idle не выполняется.
+     */
+    void setStateOverride(const std::string &stateName);
+
+    /** @brief Снять принудительное состояние и вернуться к run/idle логике. */
+    void clearStateOverride();
+
+  protected:
+    void onDraw(sf::RenderTarget &target,
+                sf::RenderStates states) const override;
+
+  private:
+    /// Обрабатывает клавиатурный ввод и движение.
+    void handleInput(float dt);
+
+    /// Продвигает анимацию спрайта по таймеру и состоянию (idle/run/override).
+    void updateAnimation(float dt);
+
+    /// Выбирает строку атласа по текущему направлению.
+    void updateDirection(const sf::Vector2f &dir);
+
+    /// Держит игрока внутри заданных границ.
+    void clampToBounds();
+
+    struct Sheet {
+      sf::Texture texture;
+      sf::Vector2i sheetGrid{8, 8};
+      sf::Vector2i frameSize{0, 0};
+      sf::Vector2i frameStart{0, 0};
+      sf::Vector2i frameStride{0, 0};
+      int framesPerRow{8};
+      bool loaded{false};
+    };
+
+    // Логический размер задаётся shape_; по нему считаются коллизии и границы.
+    // Спрайт подгоняется под эти локальные границы, если текстура загружена.
+    sf::RectangleShape shape_;
+    sf::Texture placeholderTexture_;
+    sf::Sprite sprite_;
+    bool hasTexture_{false};
+
+    sf::Vector2i defaultGrid_{8, 8};
+    std::unordered_map<std::string, Sheet> sheets_;
+    const Sheet *activeSheet_{nullptr};
+    std::string activeState_{"run"};
+    std::string overrideState_{};
+    bool hasOverride_{false};
+    int currentFrame_{0};
+    int currentRow_{0};
+    sf::Vector2f lastDir_{
+        1.f, 0.f};
+    float frameDuration_{0.12f};
+    float frameTimer_{0.f};
+    bool isMoving_{false};
+
+    // Порядок строк атласа.
+    static constexpr std::array<DirectionSector, 8> kRowDirectionOrder_{
+      DirectionSector::Up,
+      DirectionSector::UpRight,
+      DirectionSector::Right,
+      DirectionSector::DownRight,
+      DirectionSector::Down,
+      DirectionSector::DownLeft,
+      DirectionSector::Left,
+      DirectionSector::UpLeft };
+
+    sf::FloatRect movementBounds_;
+    float speed_{220.f};
+
+    bool loadSheet(const std::string &name, const std::string &path);
+    const Sheet *findSheet(const std::string &name) const;
+    int rowIndexFor(DirectionSector sector) const;
+    void applySheet(const Sheet &sheet);
+    void applyFrame(const Sheet &sheet, int col, int row);
+};
