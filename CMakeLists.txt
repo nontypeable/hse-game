@@ -26,9 +26,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SFML)
 
-add_executable(${PROJECT_NAME} src/main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE
-        SFML::Graphics SFML::Window SFML::System
-        project_options
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/main.cpp")
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+target_include_directories(${PROJECT_NAME}
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
 )
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE SFML::Graphics SFML::Window SFML::System project_options)
